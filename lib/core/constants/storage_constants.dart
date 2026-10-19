@@ -12,7 +12,8 @@ class StorageConstants {
   static const String backupHistoryDatabaseName = 'backup_history.db';
 
   // Folders in User-Accessible Shared Storage
-  static const String userAccessibleRootFolder = 'Ezze Backup';
+  static const String dedicatedAppFolder = 'EzzeBackUp';
+  static const String userAccessibleRootFolder = 'Download/EzzeBackUp';
   static const String filesFolder = 'Files';
   static const String mediaFolder = 'Media';
   static const String contactsFolder = 'Contacts';

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../../../core/constants/storage_constants.dart';
@@ -234,10 +235,21 @@ class FileBackupNotifier extends StateNotifier<FileBackupState> {
   }
 
   /// Executes ZIP creation, verification, and history recording
-  Future<BackupRecord?> executeBackup() async {
+  Future<BackupRecord?> executeBackup([BuildContext? context]) async {
     if (state.selectedFiles.isEmpty) {
       state = state.copyWith(errorMessage: 'Please select files to back up.');
       return null;
+    }
+
+    if (context != null) {
+      final permService = _ref.read(permissionServiceProvider);
+      final hasPerm = await permService.ensureStoragePermission(context);
+      if (!hasPerm) {
+        state = state.copyWith(
+          errorMessage: 'Storage permission is required to save backups into Download/EzzeBackUp.',
+        );
+        return null;
+      }
     }
 
     state = state.copyWith(

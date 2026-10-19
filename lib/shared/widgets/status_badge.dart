@@ -9,47 +9,48 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color bg;
     Color fg;
     IconData icon;
 
     switch (status) {
       case BackupStatus.completed:
-        bg = AppColors.successGreenSubtle;
+        bg = isDark ? AppColors.successGreen.withAlpha(30) : AppColors.successGreenSubtle;
         fg = AppColors.successGreen;
         icon = Icons.check_circle_rounded;
         break;
       case BackupStatus.completedWithWarnings:
-        bg = AppColors.warningAmberSubtle;
+        bg = isDark ? AppColors.warningAmber.withAlpha(30) : AppColors.warningAmberSubtle;
         fg = AppColors.warningAmber;
         icon = Icons.warning_amber_rounded;
         break;
       case BackupStatus.failed:
-        bg = AppColors.errorRedSubtle;
+        bg = isDark ? AppColors.errorRed.withAlpha(30) : AppColors.errorRedSubtle;
         fg = AppColors.errorRed;
         icon = Icons.cancel_rounded;
         break;
       case BackupStatus.inProgress:
-        bg = AppColors.primaryBlueSubtle;
+        bg = isDark ? AppColors.primaryBlue.withAlpha(30) : AppColors.primaryBlueSubtle;
         fg = AppColors.primaryBlue;
         icon = Icons.hourglass_top_rounded;
         break;
       case BackupStatus.cancelled:
-        bg = Colors.grey.shade200;
-        fg = Colors.grey.shade700;
+        bg = isDark ? Colors.grey.withAlpha(30) : Colors.grey.shade100;
+        fg = isDark ? AppColors.darkTextSecondary : Colors.grey.shade600;
         icon = Icons.block_rounded;
         break;
       default:
-        bg = AppColors.primaryBlueSubtle;
+        bg = isDark ? AppColors.primaryBlue.withAlpha(30) : AppColors.primaryBlueSubtle;
         fg = AppColors.primaryBlue;
         icon = Icons.info_outline_rounded;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -62,6 +63,7 @@ class StatusBadge extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: fg,
+              letterSpacing: -0.2,
             ),
           ),
         ],

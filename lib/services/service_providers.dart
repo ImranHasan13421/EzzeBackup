@@ -4,8 +4,13 @@ import 'contact_json_service.dart';
 import 'contact_service.dart';
 import 'contact_sync_service.dart';
 import 'pdf_service.dart';
+import 'permission_service.dart';
 import 'storage_service.dart';
 import 'zip_service.dart';
+
+final permissionServiceProvider = Provider<PermissionService>((ref) {
+  return PermissionService();
+});
 
 final storageServiceProvider = Provider<StorageService>((ref) {
   return StorageService();

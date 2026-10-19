@@ -68,8 +68,10 @@ class StorageService {
       File(p.join(databasePrivateDir.path, StorageConstants.backupHistoryDatabaseName));
 
   /// Resolves the user-accessible backup root folder.
-  /// Checks user-configured custom destination first.
-  /// If not set, checks common Android shared storage path or falls back to app-accessible external files directory.
+  /// Priority:
+  /// 1. User-configured custom destination (if set).
+  /// 2. Dedicated public Download folder: "/storage/emulated/0/Download/EzzeBackUp" on Android.
+  /// 3. Download/EzzeBackUp on desktop / other platforms.
   Future<Directory> getUserAccessibleBackupDir() async {
     final prefs = await SharedPreferences.getInstance();
     final customPath = prefs.getString(AppConstants.prefCustomBackupPath);
@@ -81,57 +83,57 @@ class StorageService {
       }
     }
 
-    // Default location on Android / desktop
+    // Default dedicated location: Download/EzzeBackUp
     try {
       if (Platform.isAndroid) {
-        // Attempt standard shared storage "/storage/emulated/0/Ezze Backup"
-        const standardShared = '/storage/emulated/0/${StorageConstants.userAccessibleRootFolder}';
-        final sharedDir = Directory(standardShared);
-        try {
-          if (!await sharedDir.exists()) {
-            await sharedDir.create(recursive: true);
-          }
-          return sharedDir;
-        } catch (_) {
-          // Scoped storage fallback: getExternalStorageDirectory()
-          final ext = await getExternalStorageDirectory();
-          if (ext != null) {
-            final fallback = Directory(p.join(ext.path, StorageConstants.userAccessibleRootFolder));
-            if (!await fallback.exists()) {
-              await fallback.create(recursive: true);
-            }
-            return fallback;
+        final downloadPath = p.join('/storage/emulated/0', 'Download', StorageConstants.dedicatedAppFolder);
+        final dedicatedDir = Directory(downloadPath);
+        if (!await dedicatedDir.exists()) {
+          try {
+            await dedicatedDir.create(recursive: true);
+          } catch (e) {
+            debugPrint('Pending storage permission to create $downloadPath: $e');
           }
         }
+        return dedicatedDir;
       }
 
-      // For desktop / other platforms: Downloads or Documents
+      // For desktop / other platforms: Downloads directory
       Directory? target;
       try {
         target = await getDownloadsDirectory();
       } catch (_) {}
       target ??= await getApplicationDocumentsDirectory();
 
-      final sharedDir = Directory(p.join(target.path, StorageConstants.userAccessibleRootFolder));
+      final sharedDir = Directory(p.join(target.path, StorageConstants.dedicatedAppFolder));
       if (!await sharedDir.exists()) {
-        await sharedDir.create(recursive: true);
+        try {
+          await sharedDir.create(recursive: true);
+        } catch (_) {}
       }
       return sharedDir;
     } catch (e) {
       debugPrint('Error getting shared backup directory: $e');
-      return appPrivateDir;
+      if (Platform.isAndroid) {
+        return Directory(p.join('/storage/emulated/0', 'Download', StorageConstants.dedicatedAppFolder));
+      }
+      return Directory(p.join((await getApplicationDocumentsDirectory()).path, StorageConstants.dedicatedAppFolder));
     }
   }
 
-  /// Resolves subcategory directory in user-accessible storage
-  /// (e.g. "Files", "Media", "Contacts", "Backup_Logs")
-  Future<Directory> getCategoryExportDir(String subfolder) async {
+  /// Resolves dedicated export directory in user-accessible storage.
+  /// All files, ZIP archives, and PDFs are saved directly into the dedicated
+  /// Download/EzzeBackUp folder so mobile users can view and share them immediately.
+  Future<Directory> getCategoryExportDir([String? subfolder]) async {
     final root = await getUserAccessibleBackupDir();
-    final subDir = Directory(p.join(root.path, subfolder));
-    if (!await subDir.exists()) {
-      await subDir.create(recursive: true);
+    if (!await root.exists()) {
+      try {
+        await root.create(recursive: true);
+      } catch (e) {
+        debugPrint('Could not create dedicated root directory: $e');
+      }
     }
-    return subDir;
+    return root;
   }
 
   /// Generates a uniquely named, non-colliding file path with timestamp.

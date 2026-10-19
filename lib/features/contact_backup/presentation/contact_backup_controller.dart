@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/contact_snapshot.dart';
 import '../../../services/service_providers.dart';
@@ -88,8 +89,19 @@ class ContactBackupNotifier extends StateNotifier<ContactBackupState> {
     }
   }
 
-  Future<File?> exportPdf() async {
+  Future<File?> exportPdf([BuildContext? context]) async {
     if (state.snapshot == null) return null;
+    if (context != null) {
+      final perm = _ref.read(permissionServiceProvider);
+      final hasPerm = await perm.ensureStoragePermission(context);
+      if (!hasPerm) {
+        state = state.copyWith(
+          errorMessage: 'File access permission is required to save PDF into Download/EzzeBackUp.',
+        );
+        return null;
+      }
+    }
+
     state = state.copyWith(isExporting: true, clearMessages: true);
     try {
       final pdfService = _ref.read(pdfServiceProvider);
@@ -110,8 +122,19 @@ class ContactBackupNotifier extends StateNotifier<ContactBackupState> {
     }
   }
 
-  Future<File?> exportJson() async {
+  Future<File?> exportJson([BuildContext? context]) async {
     if (state.snapshot == null) return null;
+    if (context != null) {
+      final perm = _ref.read(permissionServiceProvider);
+      final hasPerm = await perm.ensureStoragePermission(context);
+      if (!hasPerm) {
+        state = state.copyWith(
+          errorMessage: 'File access permission is required to save JSON into Download/EzzeBackUp.',
+        );
+        return null;
+      }
+    }
+
     state = state.copyWith(isExporting: true, clearMessages: true);
     try {
       final jsonService = _ref.read(contactJsonServiceProvider);

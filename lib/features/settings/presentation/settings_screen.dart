@@ -21,14 +21,19 @@ class SettingsScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('Settings'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           // Section 1: Storage Location
-          _buildSectionHeader('Storage & Export Location'),
+          _buildSectionHeader('Storage & Export Folder'),
           const SizedBox(height: 8),
           AppCard(
             padding: const EdgeInsets.all(16),
@@ -37,41 +42,103 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.folder_shared_outlined, color: AppColors.primaryBlue),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Export Destination Folder',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    const Spacer(),
-                    if (locationState.isCustom)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryBlue.withAlpha(25),
-                          borderRadius: BorderRadius.circular(4),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        child: const Text(
-                          'Custom',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.folder_shared_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Export Destination',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          ),
+                          Text(
+                            locationState.isCustom ? 'Custom Storage Folder' : 'Default App Storage',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: locationState.isCustom
+                            ? AppColors.primaryBlueSubtle
+                            : (isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        locationState.isCustom ? 'Custom' : 'Default',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: locationState.isCustom
+                              ? AppColors.primaryBlue
+                              : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                         ),
                       ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  locationState.path,
-                  style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                ),
                 const SizedBox(height: 12),
+
+                // Path container
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.folder_open_rounded,
+                        size: 16,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          locationState.path,
+                          style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
                 Text(
-                  'ZIP archives and exported contact PDFs/JSONs are saved into subfolders here (Files, Media, Contacts). The active contact database is kept in private sandboxed storage.',
+                  'ZIP archives, contact PDFs, and JSON files are saved into the dedicated Download/EzzeBackUp folder, making them directly accessible in your device file manager. The active contact snapshot is kept encrypted in sandboxed private storage.',
                   style: TextStyle(
                     fontSize: 11,
                     color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    height: 1.35,
                   ),
                 ),
                 const SizedBox(height: 14),
+
                 Row(
                   children: [
                     Expanded(
@@ -115,7 +182,7 @@ class SettingsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Theme Preference',
+                  'Display Mode',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -123,31 +190,43 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<ThemeMode>(
-                    segments: const [
-                      ButtonSegment(
-                        value: ThemeMode.system,
-                        label: Text('System'),
-                        icon: Icon(Icons.brightness_auto_rounded, size: 18),
+
+                // 3 Interactive Theme Mode Selector Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildThemeModeOption(
+                        mode: ThemeMode.system,
+                        label: 'System',
+                        icon: Icons.brightness_auto_rounded,
+                        isSelected: themeMode == ThemeMode.system,
+                        isDark: isDark,
+                        onTap: () => themeNotifier.setTheme(ThemeMode.system),
                       ),
-                      ButtonSegment(
-                        value: ThemeMode.light,
-                        label: Text('Light'),
-                        icon: Icon(Icons.light_mode_rounded, size: 18),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildThemeModeOption(
+                        mode: ThemeMode.light,
+                        label: 'Light',
+                        icon: Icons.light_mode_rounded,
+                        isSelected: themeMode == ThemeMode.light,
+                        isDark: isDark,
+                        onTap: () => themeNotifier.setTheme(ThemeMode.light),
                       ),
-                      ButtonSegment(
-                        value: ThemeMode.dark,
-                        label: Text('Dark'),
-                        icon: Icon(Icons.dark_mode_rounded, size: 18),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildThemeModeOption(
+                        mode: ThemeMode.dark,
+                        label: 'Dark',
+                        icon: Icons.dark_mode_rounded,
+                        isSelected: themeMode == ThemeMode.dark,
+                        isDark: isDark,
+                        onTap: () => themeNotifier.setTheme(ThemeMode.dark),
                       ),
-                    ],
-                    selected: {themeMode},
-                    onSelectionChanged: (newSelection) {
-                      themeNotifier.setTheme(newSelection.first);
-                    },
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -155,7 +234,7 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Section 3: Coming Later (Roadmap)
-          _buildSectionHeader('Coming in Future Updates'),
+          _buildSectionHeader('Product Roadmap'),
           const SizedBox(height: 8),
           AppCard(
             padding: const EdgeInsets.all(16),
@@ -163,18 +242,21 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 _buildUpcomingFeatureItem(
                   icon: Icons.lock_outline_rounded,
+                  iconGradient: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
                   title: 'Encrypted Password Vault',
                   subtitle: 'Keystore authenticated zero-knowledge vault for sensitive credentials.',
                 ),
-                const Divider(height: 16),
+                const Divider(height: 20),
                 _buildUpcomingFeatureItem(
                   icon: Icons.cloud_sync_outlined,
+                  iconGradient: const [Color(0xFF06B6D4), Color(0xFF0284C7)],
                   title: 'Automated Scheduled Backups',
                   subtitle: 'Scheduled background backup to cloud drives and external storage.',
                 ),
-                const Divider(height: 16),
+                const Divider(height: 20),
                 _buildUpcomingFeatureItem(
                   icon: Icons.restore_rounded,
+                  iconGradient: const [Color(0xFF10B981), Color(0xFF059669)],
                   title: 'Archive & Contact Restoration',
                   subtitle: 'One-tap restore from validated ZIP archives and contact snapshots.',
                 ),
@@ -191,37 +273,65 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.privacy_tip_outlined, color: AppColors.successGreen, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      '100% Offline & Private',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.successGreenSubtle,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.shield_outlined, color: AppColors.successGreen, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '100% Offline & Private',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                          Text(
+                            'Zero telemetry • No external tracking',
+                            style: TextStyle(fontSize: 11, color: AppColors.successGreen),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 Text(
                   'Ezze Backup contains zero third-party analytics, advertisements, or background tracking. Contacts and files are processed strictly on your device.',
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    height: 1.35,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('App Version', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                    Text(
-                      AppConstants.appVersion,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'v${AppConstants.appVersion}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'monospace',
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -229,7 +339,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 36),
         ],
       ),
     );
@@ -237,25 +347,89 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title,
+      title.toUpperCase(),
       style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: AppColors.primaryBlue,
-        letterSpacing: 0.3,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        color: AppColors.brandStart,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+
+  Widget _buildThemeModeOption({
+    required ThemeMode mode,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? AppColors.brandStart.withAlpha(40) : AppColors.primaryBlueSubtle)
+              : (isDark ? AppColors.darkSurfaceVariant : const Color(0xFFF8FAFC)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.brandStart
+                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected
+                  ? AppColors.brandStart
+                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? (isDark ? Colors.white : AppColors.brandStart)
+                    : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildUpcomingFeatureItem({
     required IconData icon,
+    required List<Color> iconGradient,
     required String title,
     required String subtitle,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: Colors.grey),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: iconGradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: Colors.white),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -266,7 +440,7 @@ class SettingsScreen extends ConsumerWidget {
                   Flexible(
                     child: Text(
                       title,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -275,15 +449,21 @@ class SettingsScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withAlpha(40),
+                      color: AppColors.primaryBlueSubtle,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('Coming Later', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Roadmap',
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 11, color: Colors.grey, height: 1.3),
+              ),
             ],
           ),
         ),
